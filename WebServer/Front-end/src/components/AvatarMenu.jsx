@@ -214,20 +214,38 @@ const AvatarMenu = ({ anchorEl, onClose, user, setUser, onLogout }) => {
         if (file) {
             const formData = new FormData();
             formData.append("avatar", file);
+            
             try {
                 const res = await axios.post(
                     `${API_URL}/api/users/update-avatar`,
                     formData,
-                    { withCredentials: true }
+                    { 
+                        withCredentials: true,
+                        headers: {
+                            'Content-Type': 'multipart/form-data'
+                        }
+                    }
                 );
+                
                 const updatedAvatar = res.data.avatar;
-                setUser((prev) => ({ ...prev, avatar: updatedAvatar }));
-                localStorage.setItem("user", JSON.stringify({ username: user.username, avatar: updatedAvatar }));
+                
+                // ✅ SỬA: Cập nhật user state và localStorage đúng cách
+                const updatedUser = { 
+                    ...user, 
+                    avatar: updatedAvatar 
+                };
+                
+                setUser(updatedUser);
+                localStorage.setItem("user", JSON.stringify(updatedUser));
+                
                 showSnackbar("Cập nhật avatar thành công", "success");
                 onClose();
             } catch (error) {
                 console.error("Lỗi khi cập nhật avatar:", error);
-                showSnackbar("Lỗi khi cập nhật avatar", "error");
+                showSnackbar(
+                    error.response?.data?.message || "Lỗi khi cập nhật avatar", 
+                    "error"
+                );
             }
         }
     };
@@ -254,7 +272,11 @@ const AvatarMenu = ({ anchorEl, onClose, user, setUser, onLogout }) => {
         onClose();
     };
 
-    const avatarSrc = user.avatar ? `${API_URL}${user.avatar}` : undefined;
+    const avatarSrc = user?.avatar 
+        ? (user.avatar.startsWith('http') 
+            ? user.avatar 
+            : `${API_URL}${user.avatar}`)
+        : undefined;
 
     return (
         <>

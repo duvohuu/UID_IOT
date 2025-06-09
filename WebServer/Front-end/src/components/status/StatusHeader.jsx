@@ -1,111 +1,113 @@
-import React from "react";
-import { Box, Typography, Alert, Chip } from "@mui/material";
-import { useTheme } from "@mui/material/styles";
-import {
-    Dashboard as DashboardIcon,
-    Warning as WarningIcon,
-    CheckCircle as SuccessIcon
+import React from 'react';
+import { Box, Typography, Alert, Fade, Chip } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
+import { 
+    MonitorHeart as StatusIcon,
+    AdminPanelSettings as AdminIcon,
+    Person as UserIcon 
 } from '@mui/icons-material';
 
-const StatusHeader = ({ isMobile, error }) => {
+const StatusHeader = ({ isMobile, error, user }) => {
     const theme = useTheme();
+    const isAdmin = user?.role === 'admin';
 
     return (
         <Box sx={{ mb: 4 }}>
-            {/* Main Header */}
-            <Box 
-                sx={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'space-between',
-                    flexDirection: isMobile ? 'column' : 'row',
-                    gap: 2,
-                    mb: error ? 2 : 0
-                }}
-            >
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <Box
-                        sx={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            width: 64,
-                            height: 64,
-                            borderRadius: 3,
-                            background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
-                            color: 'white',
-                            boxShadow: `0 8px 32px ${theme.palette.primary.main}40`
-                        }}
-                    >
-                        <DashboardIcon sx={{ fontSize: 32 }} />
-                    </Box>
-                    <Box>
+            <Fade in={true} timeout={800}>
+                <Box sx={{ textAlign: 'center', mb: 4 }}>
+                    {/* Header với icon giống Setting page */}
+                    <Box sx={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'center',
+                        gap: 2,
+                        mb: 2
+                    }}>
+                        <Box
+                            sx={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                width: 48,
+                                height: 48,
+                                borderRadius: '50%',
+                                background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
+                                color: '#fff',
+                                boxShadow: `0 4px 20px ${theme.palette.primary.main}40`,
+                            }}
+                        >
+                            <StatusIcon sx={{ fontSize: 24 }} />
+                        </Box>
+                        
                         <Typography 
                             variant={isMobile ? "h4" : "h3"} 
+                            component="h1"
                             sx={{ 
                                 fontWeight: 700,
-                                background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
+                                background: `linear-gradient(45deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
                                 backgroundClip: 'text',
                                 WebkitBackgroundClip: 'text',
                                 WebkitTextFillColor: 'transparent',
-                            mb: 0.5
+                                letterSpacing: '0.5px',
                             }}
                         >
-                            Trang Thái Máy Móc
-                        </Typography>
-                        <Typography 
-                            variant="body1" 
-                            sx={{ 
-                                color: 'text.secondary', 
-                                fontWeight: 500
-                            }}
-                        >
-                            Giám sát thời gian thực các thiết bị sản xuất
+                            {isAdmin ? 'Quản Lý Hệ Thống' : 'Trạng Thái Máy Móc'}
                         </Typography>
                     </Box>
-                </Box>
-
-                {/* Status Indicators */}
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    {!error ? (
-                        <Chip
-                            icon={<SuccessIcon sx={{ fontSize: 16 }} />}
-                            label="System Online"
-                            size="small"
-                            color="success"
-                            sx={{ 
-                                borderRadius: 2,
-                                fontWeight: 500
-                            }}
-                        />
-                    ) : (
-                        <Chip
-                            icon={<WarningIcon sx={{ fontSize: 16 }} />}
-                            label="Connection Issue"
-                            size="small"
-                            color="warning"
-                            sx={{ 
-                                borderRadius: 2,
-                                fontWeight: 500
-                            }}
-                        />
+                    
+                    {/* ✅ User Role và Welcome Message */}
+                    {user && (
+                        <Box sx={{ mb: 2, display: 'flex', justifyContent: 'center', gap: 2, flexWrap: 'wrap' }}>
+                            <Chip
+                                icon={isAdmin ? <AdminIcon /> : <UserIcon />}
+                                label={isAdmin ? `Admin: ${user.username}` : `User: ${user.username}`}
+                                color={isAdmin ? 'secondary' : 'primary'}
+                                variant="filled"
+                                sx={{ fontWeight: 600 }}
+                            />
+                            {isAdmin && (
+                                <Chip
+                                    label="Toàn quyền hệ thống"
+                                    color="error"
+                                    variant="outlined"
+                                    size="small"
+                                />
+                            )}
+                        </Box>
                     )}
-                </Box>
-            </Box>
-
-            {/* Error Alert */}
-            {error && (
-                <Alert 
-                    severity="warning" 
-                    sx={{ 
-                        borderRadius: 2,
-                        '& .MuiAlert-message': {
-                            fontWeight: 500
+                    
+                    <Typography 
+                        variant="body1" 
+                        sx={{ 
+                            color: theme.palette.text.secondary,
+                            maxWidth: 600,
+                            mx: 'auto',
+                            lineHeight: 1.6
+                        }}
+                    >
+                        {isAdmin 
+                            ? 'Giám sát và quản lý tất cả thiết bị trong hệ thống. Thêm, sửa, xóa máy móc và phân quyền user.'
+                            : 'Giám sát và theo dõi trạng thái các máy móc được phân quyền cho bạn.'
                         }
-                    }}
-                >
-                    {error}
-                </Alert>
+                    </Typography>
+                </Box>
+            </Fade>
+
+            {error && (
+                <Fade in={true} timeout={1000}>
+                    <Alert 
+                        severity={user?.role === 'admin' ? "info" : "warning"}
+                        sx={{ 
+                            mb: 3,
+                            borderRadius: 2,
+                            '& .MuiAlert-message': {
+                                width: '100%'
+                            }
+                        }}
+                    >
+                        {error}
+                    </Alert>
+                </Fade>
             )}
         </Box>
     );

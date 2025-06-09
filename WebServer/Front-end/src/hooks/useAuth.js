@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom"; // Thêm import
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import loginUser from "../api/loginUser";
 import { useSnackbar } from '../context/SnackbarContext';
@@ -12,17 +12,41 @@ const useAuth = (setUser, socket) => {
     const navigate = useNavigate(); 
 
     const handleLogin = async () => {
-        const res = await loginUser(email, password);
-        if (res.success) {
-            setUser({ username: res.username, avatar: res.avatar });
-            localStorage.setItem("user", JSON.stringify({ username: res.username, avatar: res.avatar }));
-            setOpenLogin(false);
-            setPassword("");
-            socket.connect();
-            showSnackbar("Đăng nhập thành công", "success");
-            navigate("/status"); // Thêm điều hướng đến /status
-        } else {
-            showSnackbar(res.message || "Đăng nhập thất bại", "error");
+        try {
+            const res = await loginUser(email, password);
+            if (res.success) {
+                const userData = {
+                    username: res.username,
+                    email: res.email,
+                    role: res.role,
+                    avatar: res.avatar
+                };
+                
+                // Cập nhật state và localStorage
+                setUser(userData);
+                localStorage.setItem("user", JSON.stringify(userData));
+                
+                // Đóng modal và reset form
+                setOpenLogin(false);
+                setEmail("");
+                setPassword("");
+                
+                // Kết nối socket
+                if (socket) {
+                    socket.connect();
+                }
+                
+                showSnackbar("Đăng nhập thành công", "success");
+                
+                // Điều hướng về trang status
+                navigate("/status", { replace: true });
+                
+            } else {
+                showSnackbar(res.message || "Đăng nhập thất bại", "error");
+            }
+        } catch (error) {
+            console.error("Lỗi đăng nhập:", error);
+            showSnackbar("Lỗi kết nối server", "error");
         }
     };
 
@@ -33,11 +57,19 @@ const useAuth = (setUser, socket) => {
                 {},
                 { withCredentials: true }
             );
+            
+            // Clear user data
             setUser(null);
             localStorage.removeItem("user");
-            socket.disconnect();
+            
+            // Disconnect socket
+            if (socket) {
+                socket.disconnect();
+            }
+            
             showSnackbar("Đăng xuất thành công", "success");
-            navigate("/status"); // Điều hướng sau khi đăng xuất
+            navigate("/status", { replace: true });
+            
         } catch (error) {
             console.error("Lỗi khi đăng xuất:", error);
             showSnackbar("Lỗi khi đăng xuất", "error");

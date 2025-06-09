@@ -1,16 +1,24 @@
 import jwt from "jsonwebtoken";
 
 export const authenticateToken = (req, res, next) => {
-    const token = req.cookies.authToken;
-    if (!token) {
-        return res.status(401).json({ message: "Chưa đăng nhập" });
-    }
-
-    jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
-        if (err) {
-            return res.status(403).json({ message: "Token không hợp lệ" });
+    try {
+        const token = req.cookies.authToken;
+        
+        console.log(`🔐 Auth middleware: Token exists: ${!!token}`); // ✅ THÊM debug log
+        console.log(`🔐 Auth middleware: Request path: ${req.path}`); // ✅ THÊM debug log
+        
+        if (!token) {
+            console.log(`❌ Auth middleware: No token found`);
+            return res.status(401).json({ message: "Access token required" });
         }
-        req.user = user;
+
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        req.user = decoded;
+        
+        console.log(`✅ Auth middleware: Token valid for user: ${decoded.username}`); // ✅ THÊM debug log
         next();
-    });
+    } catch (error) {
+        console.log(`❌ Auth middleware: Token invalid:`, error.message);
+        return res.status(403).json({ message: "Invalid token" });
+    }
 };

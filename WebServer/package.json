@@ -1,0 +1,17 @@
+{
+  "name": "iot-webserver",
+  "version": "1.0.0",
+  "description": "IOT WebServer with Front-end, DB Server and Main Server",
+  "scripts": {
+    "dev": "concurrently --kill-others-on-fail --prefix-colors \"cyan,green,yellow\" --prefix \"[{name}]\" --names \"Frontend,DbServer,MainServer\" \"npm run frontend --silent\" \"npm run dbserver --silent\" \"npm run mainserver --silent\"",
+    "dev:verbose": "concurrently \"npm run frontend\" \"npm run dbserver\" \"npm run mainserver\"",
+    "frontend": "cd Front-end && npm run dev",
+    "dbserver": "cd Back-end/dbServer && npm run dev",
+    "mainserver": "cd Back-end/mainServer && npm run dev",
+    "install-all": "npm install && cd Front-end && npm install && cd ../Back-end/dbServer && npm install && cd ../mainServer && npm install",
+    "build": "cd Front-end && npm run build"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

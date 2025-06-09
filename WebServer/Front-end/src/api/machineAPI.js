@@ -2,14 +2,13 @@ import axios from "axios";
 
 axios.defaults.withCredentials = true;
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000"; // Kết nối mainServer
 
-// Lấy danh sách tất cả máy
+// Lấy danh sách tất cả máy từ mainServer
 const getMachines = async () => {
     try {
         const response = await axios.get(`${API_URL}/api/machines`, {
-            withCredentials: true // Đảm bảo gửi cookie
-            // Loại bỏ header Authorization vì auth.js không dùng
+            withCredentials: true
         });
         return { success: true, data: response.data };
     } catch (err) {
@@ -20,12 +19,11 @@ const getMachines = async () => {
     }
 };
 
-// Lấy máy theo IP
+// Lấy máy theo IP từ mainServer
 const getMachineByIp = async (ip) => {
     try {
         const response = await axios.get(`${API_URL}/api/machines/ip/${ip}`, {
-            withCredentials: true // Đảm bảo gửi cookie
-            // Loại bỏ header Authorization vì auth.js không dùng
+            withCredentials: true
         });
         return { success: true, data: response.data };
     } catch (err) {
@@ -36,4 +34,33 @@ const getMachineByIp = async (ip) => {
     }
 };
 
-export { getMachines, getMachineByIp };
+// Lấy máy theo ID từ mainServer
+const getMachineById = async (id) => {
+    try {
+        const response = await axios.get(`${API_URL}/api/machines/${id}`, {
+            withCredentials: true
+        });
+        return { success: true, data: response.data };
+    } catch (err) {
+        return { 
+            success: false, 
+            message: err.response?.data?.message || "Lỗi lấy thông tin máy" 
+        };
+    }
+};
+
+const deleteMachine = async (id) => {
+    try {
+        const response = await axios.delete(`${API_URL}/api/machines/${id}`, {
+            withCredentials: true
+        });
+        return { success: true, data: response.data };
+    } catch (err) {
+        return { 
+            success: false, 
+            message: err.response?.data?.message || "Lỗi khi xóa máy" 
+        };
+    }
+};
+
+export { getMachines, getMachineByIp, getMachineById, deleteMachine };

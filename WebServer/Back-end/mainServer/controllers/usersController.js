@@ -9,6 +9,8 @@ const DB_SERVER_URL = process.env.DB_SERVER_URL || "http://localhost:5001";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// ... (giữ nguyên các validation functions) ...
+
 // Hàm kiểm tra định dạng email
 const isValidEmail = (email) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -62,18 +64,20 @@ export const registerUser = async (req, res) => {
             return res.status(400).json({ message: validationError });
         }
 
-        const response = await axios.get(`${DB_SERVER_URL}/db/users/email/${email}`);
+        // ✅ SỬA: Dùng internal API
+        const response = await axios.get(`${DB_SERVER_URL}/db/internal/users/email/${email}`);
         if (response.status === 200) {
             return res.status(400).json({ message: "Email đã tồn tại" });
         }
 
-        const newUser = await axios.post(`${DB_SERVER_URL}/db/users`, { username, email, password });
+        // ✅ SỬA: Dùng internal API
+        const newUser = await axios.post(`${DB_SERVER_URL}/db/internal/users`, { username, email, password });
         res.status(201).json({ message: "Đăng ký thành công" });
     } catch (err) {
         if (err.response && err.response.status === 404) {
-            // Email không tồn tại, có thể tiếp tục tạo user
             try {
-                await axios.post(`${DB_SERVER_URL}/db/users`, { username, email, password });
+                // ✅ SỬA: Dùng internal API
+                await axios.post(`${DB_SERVER_URL}/db/internal/users`, { username, email, password });
                 res.status(201).json({ message: "Đăng ký thành công" });
             } catch (createErr) {
                 res.status(500).json({ message: "Lỗi đăng ký người dùng" });
@@ -94,25 +98,31 @@ export const loginUser = async (req, res) => {
         }
 
         console.log("Đang đăng nhập:", email);
-        const response = await axios.get(`${DB_SERVER_URL}/db/users/email/${email}`);
+        // ✅ SỬA: Dùng internal API
+        const response = await axios.get(`${DB_SERVER_URL}/db/internal/users/email/${email}`);
         const user = response.data;
 
         console.log("User tìm thấy:", user.email);
-        const isMatch = await bcryptCompare(password, user.password); // Cần cài đặt bcrypt ở main server
+        const isMatch = await bcryptCompare(password, user.password);
         if (!isMatch) {
             console.log("Sai mật khẩu cho:", email);
             return res.status(401).json({ message: "Thông tin đăng nhập không chính xác" });
         }
 
         console.log("Đăng nhập thành công, tạo token...");
-        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "1d" });
+        const token = jwt.sign({ id: user._id, username: user.username }, process.env.JWT_SECRET, { expiresIn: "1d" });
         res.cookie("authToken", token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
             sameSite: "lax",
             maxAge: 24 * 60 * 60 * 1000,
         });
-        res.json({ username: user.username, avatar: user.avatar });
+        res.json({ 
+            username: user.username, 
+            avatar: user.avatar,
+            email: user.email,
+            role: user.role 
+        });
     } catch (err) {
         if (err.response && err.response.status === 404) {
             console.log("Không tìm thấy user:", email);
@@ -128,11 +138,51 @@ export const logoutUser = async (req, res) => {
     res.json({ message: "Đăng xuất thành công" });
 };
 
+// THÊM: API để verify token
+export const verifyToken = async (req, res) => {
+    try {
+        const token = req.cookies.authToken;
+        if (!token) {
+            return res.json({ valid: false, message: "No token provided" });
+        }
+
+        jwt.verify(token, process.env.JWT_SECRET, async (err, decoded) => {
+            if (err) {
+                return res.json({ valid: false, message: "Invalid token" });
+            }
+
+            try {
+                // ✅ SỬA: Cần thêm route này vào dbServer
+                const response = await axios.get(`${DB_SERVER_URL}/db/internal/users/${decoded.id}`);
+                const user = response.data;
+                
+                res.json({ 
+                    valid: true, 
+                    user: {
+                        id: user._id,
+                        username: user.username,
+                        email: user.email,
+                        role: user.role,
+                        avatar: user.avatar
+                    }
+                });
+            } catch (error) {
+                res.json({ valid: false, message: "User not found" });
+            }
+        });
+    } catch (error) {
+        res.json({ valid: false, message: "Token verification failed" });
+    }
+};
+
+// ... (giữ nguyên updateAvatar, changePassword với internal APIs) ...
+
 export const updateAvatar = async (req, res) => {
     try {
         const userId = req.user.id;
         console.log("User ID:", userId);
-        const response = await axios.get(`${DB_SERVER_URL}/db/users/${userId}`);
+        // ✅ SỬA: Cần route này
+        const response = await axios.get(`${DB_SERVER_URL}/db/internal/users/${userId}`);
         const user = response.data;
 
         if (!req.file) {
@@ -164,7 +214,8 @@ export const updateAvatar = async (req, res) => {
         }
 
         const avatarPath = `/avatars/${req.file.filename}`;
-        await axios.put(`${DB_SERVER_URL}/db/users/${userId}`, { avatar: avatarPath });
+        // ✅ SỬA: Cần route này
+        await axios.put(`${DB_SERVER_URL}/db/internal/users/${userId}`, { avatar: avatarPath });
         console.log("Cập nhật avatar trong database:", avatarPath);
 
         res.json({ avatar: avatarPath });
@@ -194,15 +245,17 @@ export const changePassword = async (req, res) => {
         }
 
         const userId = req.user.id;
-        const response = await axios.get(`${DB_SERVER_URL}/db/users/${userId}`);
+        // ✅ SỬA: Cần route này
+        const response = await axios.get(`${DB_SERVER_URL}/db/internal/users/${userId}`);
         const user = response.data;
 
-        const isMatch = await bcryptCompare(oldPassword, user.password); // Cần cài đặt bcrypt ở main server
+        const isMatch = await bcryptCompare(oldPassword, user.password);
         if (!isMatch) {
             return res.status(401).json({ message: "Mật khẩu cũ không chính xác" });
         }
 
-        await axios.put(`${DB_SERVER_URL}/db/users/${userId}`, { password: newPassword });
+        // ✅ SỬA: Cần route này
+        await axios.put(`${DB_SERVER_URL}/db/internal/users/${userId}`, { password: newPassword });
 
         res.json({ message: "Đổi mật khẩu thành công" });
     } catch (err) {
@@ -211,7 +264,7 @@ export const changePassword = async (req, res) => {
     }
 };
 
-// Hàm so sánh mật khẩu (tạm thời, cần cài đặt bcrypt)
+// Hàm so sánh mật khẩu
 const bcryptCompare = async (plainPassword, hashedPassword) => {
     const bcrypt = await import("bcryptjs");
     return await bcrypt.compare(plainPassword, hashedPassword);

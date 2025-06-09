@@ -2,10 +2,12 @@ import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 
 const userSchema = new mongoose.Schema({
+    userId: {type: String, required: true, unique: true},
     username: { type: String, required: true, unique: true },
     email:    { type: String, required: true, unique: true },
     password: { type: String, required: true },
     avatar:   { type: String, default: null },
+    role:    { type: String, enum: ["user", "admin"], default: "user" },
 });
 
 // Hash mật khẩu trước khi lưu
